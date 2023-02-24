@@ -24,64 +24,26 @@ class path_generator:
     self.fig = plt.figure()
     self.viewer = self.fig.add_subplot(111)
 
-    self.viewer.tick_params(labelbottom=False)
-    self.viewer.tick_params(labelleft=False)
+    # self.viewer.tick_params(labelbottom=False)
+    # self.viewer.tick_params(labelleft=False)
 
-    # self.last_drawn = None
-
-  # def generate2(self, start, end):
-  #   open = set(start)
-  #   closed = set()
-  #   g = {}    # dist from start
-  #   parents = {}
-
-  #   g[start] = 0
-
-  #   parents[start] = start
-
-  #   while open:
-  #     n = none
-  #     for v in open:
-  #       if n == None or g[v] + heuristic(v) < g[n] + heuristic(n)
-  #         n = v
-      
-  #     if n == end or self.map[end] == None:
-  #       pass
-  #     else:
-  #       for (m, weight) in get_neighbors(n):
-  #         if m not in open and m not in closed:
-  #           open.add(m)
-  #           parents[m] = n
-  #           g[m] = g[n] + weight
-
-  #         else:
-  #           if g[m] > g[n] + weight:
-  #             g[m] = g[n] + weight
-
-  #             parents[m] = n
-
-  #             if m in closed:
-  #               closed.remove(m)
-  #               open.add(m)
-
-
-
-
-
-
-
-  def generate(self, start, end):
+  def A_star(self, start, end):
     self.overlay = self.create_overlay(start, end)
     self.last_drawn = start
+
+    open = []
 
     open = [Node(start)]
     closed = []
 
     while open:
       q = open.pop(open.index(min(open, key=lambda x:x.f)))
+      print("Q: ", q.pos)
+      print("END: ", end)
 
-      if q.pos.all == end.all or q.pos[1]>self.map.shape[1]:   # TODO: Add check if pos is within graph
-        pass
+      if np.array_equal(q.pos, end) or q.pos[1]>self.map.shape[1]:   # TODO: Add check if pos is within graph
+        print("HOORAY!!!!!")
+        break
       
       # set each neighbor as distance 1 from q
       descendants = [ Node(q.pos + [-1, 1], g=1+q.g, parent=q),
@@ -117,8 +79,8 @@ class path_generator:
     return np.linalg.norm(p1 - p2)
 
   def update_overlay(self, point):
-    self.overlay[point[0], point[1], :] = np.array([100, 255, 0])
-    self.overlay[self.last_drawn[0], self.last_drawn[1], :] = np.array([0, 255, 0])
+    self.overlay[point[1], point[0], :] = np.array([100, 255, 0])
+    self.overlay[self.last_drawn[1], self.last_drawn[0], :] = np.array([0, 255, 0])
     
     self.viewer.imshow(self.map_img*self.overlay, interpolation='nearest')
 
@@ -134,7 +96,7 @@ class path_generator:
     overlay = cv2.circle(overlay, end, 0, (255, 0, 0), 1)
 
     # Works at resolution: 100
-    # cv2.putText(overlay, "Start", start - np.array([-5,0]), cv2.FONT_HERSHEY_SIMPLEX, .25, (0,0,255), 1)
-    # cv2.putText(overlay, "End", end - np.array([-5,0]),     cv2.FONT_HERSHEY_SIMPLEX, .25, (0,0,255), 1)
+    cv2.putText(overlay, "Start", start - np.array([-5,0]), cv2.FONT_HERSHEY_SIMPLEX, .25, (0,0,255), 1)
+    cv2.putText(overlay, "End", end - np.array([-5,0]),     cv2.FONT_HERSHEY_SIMPLEX, .25, (0,0,255), 1)
 
     return overlay

@@ -9,5 +9,5 @@ if __name__ == "__main__":
 
   P = path_generator(M.map)
 
-  P.generate(np.array([5,5]), np.array([50,20]))
+  P.A_star(np.array([5,5]), np.array([50,20]))
   # P.show(overlay=True)
