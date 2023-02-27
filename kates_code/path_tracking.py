@@ -13,10 +13,11 @@ from cflib.positioning.motion_commander import MotionCommander
 from distance_calcs import dist_state_to_path
 import math
 
-URI = uri_helper.uri_from_env(default='radio://0/90/2M/E7E7E7E7E7')
+URI = uri_helper.uri_from_env(default='radio://0/40/2M/E7E7E7E7E7')
 
 #gain constant
-GAIN = .1
+TAN_GAIN = 10
+DIST_GAIN = 10
 MULTIPLIER = 1
 FORWARD_VEL = .1
 THRESHOLD = .1
@@ -57,7 +58,7 @@ def get_yaw_vel(state, next_waypoint, velocity):
     # print("state: ", state, "waypoint", next_waypoint, "velocity", velocity)
     theta_error = state.yaw - next_waypoint[3]
     dist_error = dist_state_to_path(state, next_waypoint)
-    delta = theta_error + np.arctan(GAIN * dist_error/ velocity)
+    delta = theta_error + (DIST_GAIN* dist_error) #DIST_GAIN* np.arctan(TAN_GAIN * dist_error/ velocity)
     return delta
 
 
@@ -65,16 +66,22 @@ def get_next_waypoint(state, path, current_index):
     """
     get index of the next closest waypoint
     """
-    vector_state_current = [path[current_index][0] - state.x, path[current_index][1] - state.y]
-    vector_state_next = [path[current_index + 1][0] - state.x, path[current_index + 1][1] - state.y]
+    closest = current_index
+    for index,waypoint in enumerate(path[current_index:-1]):
+        if math.sqrt((waypoint[0] - state.x)**2 + (waypoint[1] - state.y)**2) < math.sqrt((path[closest][0] - state.x)**2 + (path[closest][1] - state.y)**2):
+            closest = index
 
-    vector_current = [math.cos(path[current_index][3]), math.sin(path[current_index][3])]
-    vector_next = [math.cos(path[current_index + 1][3]), math.sin(path[current_index + 1][3])]
+    vector_state_closest = [path[closest][0] - state.x, path[closest][1] - state.y]
+    vector_closest = [math.cos(path[closest][3]), math.sin(path[closest][3])]
 
-    if np.dot(vector_state_current, vector_current) < np.dot(vector_state_next, vector_next):
-        print("NEW WAYPOINT")
-        return current_index + 1
-    return current_index
+    if np.dot(vector_state_closest, vector_closest) < 0:
+        if closest+1 != len(path):
+            new_waypoint = closest + 1
+        else:
+            new_waypoint = closest
+    if new_waypoint != current_index:
+        print("NEW WAYPOINT, ", closest)
+    return closest
 
 
 def check_success(state,goal,offset=.1):
@@ -94,7 +101,9 @@ if __name__ == '__main__':
     """
     GET PATH HERE
     """
-    path = ([0, 0, 1, 0], [0, 0.5, 1, 1.5707963267948966], [0, 1, 1, 0.0], [0.5, 1, 1, 0.0], [1, 1, 0, -1.5707963267948966], [1, 0.5, 1, -1.5707963267948966], [1, 0, 1, -1.5707963267948966])
+    # path = ([0, 0, 1, 0], [0, 0.5, 1, 1.5707963267948966], [0, 1, 1, 0.0], [0.5, 1, 1, 0.0], [1, 1, 0, -1.5707963267948966], [1, 0.5, 1, -1.5707963267948966], [1, 0, 1, -1.5707963267948966])
+    path = ([0, 0, 1, 0], [.4, 0, 1, 0], [.8, 0, 1, 0])
+
 
     with SyncCrazyflie(URI, cf=Crazyflie(rw_cache='./cache')) as scf:
         print('logging setup ')
@@ -112,25 +121,23 @@ if __name__ == '__main__':
             state = get_data()
             current_waypoint_index = 0
             print("ascend")
-            mc.up(.5)
+            mc.up(1)
             time.sleep(1)
             print("start loop")
             mc.start_forward(velocity=FORWARD_VEL)
 
             while not (check_success(state, path[-1])):
-                if current_waypoint_index < len(path) -1:
-                    current_waypoint_index = get_next_waypoint(state, path, current_waypoint_index)
+                current_waypoint_index = get_next_waypoint(state, path, current_waypoint_index)
                 yaw = get_yaw_vel(state, path[current_waypoint_index], FORWARD_VEL) * MULTIPLIER
-                print("yaw:", yaw)
-                if abs(yaw) > THRESHOLD:
-                    mc.start_turn_forward(velocity=FORWARD_VEL, rate=yaw)
-                else:
-                    mc.start_forward(velocity=FORWARD_VEL)
-                state = get_data()
+                # print("yaw:", yaw)
+                mc.start_linear_motion(FORWARD_VEL, 0.0, 0.0, yaw)
                 time.sleep(.01)
+                state = get_data()
+
 
             print("descend")
-            mc.stop()
+            mc.land()       
             time.sleep(1)
+            mc.stop()
 
             logconf.stop()
