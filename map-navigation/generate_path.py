@@ -107,9 +107,13 @@ class path_generator:
 
           self.update_overlay(node.pos, np.array([1, 0, 0]))
 
-          self.show()
+          # self.show()
 
         self.path = np.asarray(path[::-1]) / self.resolution
+        
+        self.show()
+
+        plt.pause(1)
 
         break
 

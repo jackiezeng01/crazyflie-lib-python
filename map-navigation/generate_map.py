@@ -9,7 +9,8 @@ class map_generator():
 
     self.map = self.create_map(obstacle_list)
 
-    self.overlay = self.create_overlay(waypoints)
+    if waypoints:
+      self.overlay = self.create_overlay(waypoints)
     
 
   def create_map(self, known_obstacles):
