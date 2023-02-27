@@ -3,27 +3,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class map_generator():
-  def __init__(self, size, resolution):
-    self.size = size.astype(int) * resolution
+  def __init__(self, size, obstacle_list, waypoints, resolution):
+    self.size = (size * resolution).astype(int)
     self.resolution = resolution
-    
-    # Obstacle polygon corners
-    obstacle_1 = np.array([[0, .3], [0, .605], [1.22, .605], [1.22, .3]])
-    obstacle_2 = np.array([[0,-.3], [0,-.605], [1.22,-.605], [1.22,-.3]])
 
-    known_obstacle_list = [obstacle_1, obstacle_2]
+    self.map = self.create_map(obstacle_list)
 
-    waypoint_dict = {
-      "A": np.array([-.6,-.6]),
-      "B": np.array([-.6,-.3]),
-      "C": np.array([-.6,  0]),
-      "D": np.array([-.6, .3]),
-      "E": np.array([-.6, .6])
-    }
-
-    self.map = self.create_map(known_obstacle_list)
-
-    self.overlay = self.create_overlay(waypoint_dict)
+    self.overlay = self.create_overlay(waypoints)
     
 
   def create_map(self, known_obstacles):
@@ -45,10 +31,12 @@ class map_generator():
   def create_overlay(self, point_dict):
     overlay = np.zeros(np.append(self.size,3))+255
 
+    res_scalar = int(self.resolution/20)
+
     for label in point_dict:
       point_dict[label] = self.scale2plot(point_dict[label])
-      overlay = cv2.circle(overlay, point_dict[label], 1, (255, 0, 0), 1)
-      cv2.putText(overlay, label, point_dict[label] - np.array([-5,0]), cv2.FONT_HERSHEY_SIMPLEX, .2, (0,0,255), 1)
+      overlay = cv2.circle(overlay, point_dict[label], 0, (255, 0, 0), 1*res_scalar)
+      cv2.putText(overlay, label, point_dict[label] - np.array([-5,0]), cv2.FONT_HERSHEY_SIMPLEX, .1*res_scalar, (0,0,255), int(res_scalar/2))
 
     return overlay
 
@@ -70,11 +58,11 @@ class map_generator():
     
     viewer.imshow(img, interpolation='nearest')
 
-    viewer.tick_params(labelbottom=False)
-    viewer.tick_params(labelleft=False)
+    # viewer.tick_params(labelbottom=False)
+    # viewer.tick_params(labelleft=False)
 
     fig.canvas.draw()
-    plt.pause(10)
+    plt.pause(2)
 
 
 # if __name__ == "__main__":
