@@ -13,14 +13,14 @@ from cflib.positioning.motion_commander import MotionCommander
 from distance_calcs import dist_state_to_path
 import math
 
-URI = uri_helper.uri_from_env(default='radio://0/40/2M/E7E7E7E7E7')
+URI = uri_helper.uri_from_env(default='radio://0/90/2M/E7E7E7E7E7')
 
 #gain constant
-TAN_GAIN = 10
-DIST_GAIN = 10
-MULTIPLIER = 1
-FORWARD_VEL = .1
-THRESHOLD = .1
+# TAN_GAIN = 10
+YAW_RATE_RATIO = 100
+YAW_RATE_GAIN = 1.25
+FORWARD_VEL = .2
+MAX_YAW_RATE = 25
 
 position_estimate = [0, 0, 0, 0]
 
@@ -54,11 +54,10 @@ def get_yaw_vel(state, next_waypoint, velocity):
     next_waypoint = x,y,z,yaw list of next waypoint
     velocity = forward velocity float
     """
-    # print("get yaw vel")
-    # print("state: ", state, "waypoint", next_waypoint, "velocity", velocity)
     theta_error = state.yaw - next_waypoint[3]
     dist_error = dist_state_to_path(state, next_waypoint)
-    delta = theta_error + (DIST_GAIN* dist_error) #DIST_GAIN* np.arctan(TAN_GAIN * dist_error/ velocity)
+    print("theta ", theta_error, "dist ", dist_error)
+    delta = theta_error + (YAW_RATE_RATIO* dist_error) #DIST_GAIN* np.arctan(TAN_GAIN * dist_error/ velocity)
     return delta
 
 
@@ -78,13 +77,15 @@ def get_next_waypoint(state, path, current_index):
         if closest+1 != len(path):
             new_waypoint = closest + 1
         else:
-            new_waypoint = closest
+            new_waypoint = len(path) - 1
+    else:
+        new_waypoint = closest
     if new_waypoint != current_index:
         print("NEW WAYPOINT, ", closest)
-    return closest
+    return new_waypoint
 
 
-def check_success(state,goal,offset=.1):
+def check_success(state,goal,offset=.2):
     """
     check if position is close enough to goal to call it good
     """
@@ -102,7 +103,7 @@ if __name__ == '__main__':
     GET PATH HERE
     """
     # path = ([0, 0, 1, 0], [0, 0.5, 1, 1.5707963267948966], [0, 1, 1, 0.0], [0.5, 1, 1, 0.0], [1, 1, 0, -1.5707963267948966], [1, 0.5, 1, -1.5707963267948966], [1, 0, 1, -1.5707963267948966])
-    path = ([0, 0, 1, 0], [.4, 0, 1, 0], [.8, 0, 1, 0])
+    path = ([0, 0, 1, 0], [.6, 0, 1, 0], [1.2, 0, 1, 0])
 
 
     with SyncCrazyflie(URI, cf=Crazyflie(rw_cache='./cache')) as scf:
@@ -116,21 +117,20 @@ if __name__ == '__main__':
         logconf.data_received_cb.add_callback(log_pos_callback)
 
         logconf.start()
+        cf = scf.cf
         # We take off when the commander is created
         with MotionCommander(scf) as mc:
             state = get_data()
             current_waypoint_index = 0
             print("ascend")
-            mc.up(1)
+            mc.up(.8)
             time.sleep(1)
             print("start loop")
-            mc.start_forward(velocity=FORWARD_VEL)
-
             while not (check_success(state, path[-1])):
                 current_waypoint_index = get_next_waypoint(state, path, current_waypoint_index)
-                yaw = get_yaw_vel(state, path[current_waypoint_index], FORWARD_VEL) * MULTIPLIER
-                # print("yaw:", yaw)
-                mc.start_linear_motion(FORWARD_VEL, 0.0, 0.0, yaw)
+                yaw_rate = get_yaw_vel(state, path[current_waypoint_index], FORWARD_VEL) * YAW_RATE_GAIN
+                # print("yaw:", yaw_rate)
+                cf.commander.send_hover_setpoint(FORWARD_VEL, 0.0, min(MAX_YAW_RATE, yaw_rate), 1.0)
                 time.sleep(.01)
                 state = get_data()
 
@@ -138,6 +138,4 @@ if __name__ == '__main__':
             print("descend")
             mc.land()       
             time.sleep(1)
-            mc.stop()
-
             logconf.stop()
