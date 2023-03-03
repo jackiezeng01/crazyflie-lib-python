@@ -12,8 +12,8 @@ if __name__ == "__main__":
   obstacle_list = [np.array([[0, .3], [0, .605], [1.22, .605], [1.22, .3]]),
                    np.array([[0,-.3], [0,-.605], [1.22,-.605], [1.22,-.3]])]
 
-  waypoints = {"A": np.array([-.6,-.6]),
-               "B": np.array([-.6,-.3]),
+  waypoints = {"A": np.array([-1,-.8]),
+               "B": np.array([ 1.2, .8]),
                "C": np.array([-.6,  0]),
                "D": np.array([-.6, .3]),
                "E": np.array([-.6, .6]),
@@ -22,7 +22,7 @@ if __name__ == "__main__":
   map_size = np.array([2.1,3.3])
 
 
-  resolution = 8   # Resolution of solution in pixels per meter
+  resolution = 10   # Resolution of solution in pixels per meter. Min = 8 px/m
 
 
   #BE WARNED: this funciton also changes the obstacle and waypoints lists
@@ -32,15 +32,15 @@ if __name__ == "__main__":
 
   P = path_generator(M.map, resolution)
 
-  P.A_star(waypoints["E"], waypoints["F"])
+  P.A_star(waypoints["A"], waypoints["B"])
 
-  print(P.path.shape)
+  # print(P.path.shape)
 
   P.path = np.flipud(P.path)
 
   new_waypoints = spline_path(P.path[:,0], P.path[:,1], 60)
 
-  print(new_waypoints.shape)
+  # print(new_waypoints.shape)
 
 
 

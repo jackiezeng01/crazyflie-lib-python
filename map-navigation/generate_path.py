@@ -45,8 +45,9 @@ class nodeDict:
 
 class path_generator:
   def __init__(self, map, resolution):
+    # blur_const must be an odd integer no smaller than 3
     blur_const = int(resolution/10)*2 + 1
-    blur_const = 3
+    blur_const = max(blur_const, 3)
     blur_map = cv2.GaussianBlur(map, (blur_const,blur_const), cv2.BORDER_DEFAULT)
 
     # 2D map for A* operations
@@ -146,8 +147,8 @@ class path_generator:
         # A* Heuristics Behavior
         proximity_penalty = 1000* (1 - self.map[s.pos[1], s.pos[0]]/255)
 
-        s.g = self.distance(s.pos, start)
-        # s.g = self.distance(s.pos, q.pos) + q.g
+        # s.g = self.distance(s.pos, start)
+        s.g = self.distance(s.pos, q.pos) + q.g
         # s.g = 1 + q.g
         s.h = self.distance(s.pos, end)
         s.f = s.g + s.h + proximity_penalty
