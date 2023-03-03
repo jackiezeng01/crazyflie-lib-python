@@ -22,7 +22,7 @@ if __name__ == "__main__":
   map_size = np.array([2.1,3.3])
 
 
-  resolution = 10   # Resolution of solution in pixels per meter
+  resolution = 8   # Resolution of solution in pixels per meter
 
 
   #BE WARNED: this funciton also changes the obstacle and waypoints lists
@@ -38,7 +38,7 @@ if __name__ == "__main__":
 
   P.path = np.flipud(P.path)
 
-  new_waypoints = spline_path(P.path[:,0], P.path[:,1], 20)
+  new_waypoints = spline_path(P.path[:,0], P.path[:,1], 60)
 
   print(new_waypoints.shape)
 
@@ -47,11 +47,11 @@ if __name__ == "__main__":
   if True:
     plt.clf()
     # im = plt.imread(P.map)
-    implot = plt.imshow(P.map, cmap="gray")
+    implot = plt.imshow(P.map_basic, cmap="gray")
 
     # fig, ax = plt.subplots()
-    plt.plot(P.path[:,0]*resolution, P.path[:,1]*resolution, 'bo')
-    plt.plot(new_waypoints[0]*resolution, new_waypoints[1]*resolution, 'ro')
+    plt.plot(new_waypoints[0]*resolution, new_waypoints[1]*resolution, 'bo')
+    plt.plot(P.path[:,0]*resolution, P.path[:,1]*resolution, 'ro')
     plt.axis('equal')
     plt.show()
 

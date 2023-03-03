@@ -46,10 +46,14 @@ class nodeDict:
 class path_generator:
   def __init__(self, map, resolution):
     blur_const = int(resolution/10)*2 + 1
+    blur_const = 3
     blur_map = cv2.GaussianBlur(map, (blur_const,blur_const), cv2.BORDER_DEFAULT)
 
     # 2D map for A* operations
     self.map = blur_map * (map==255)
+    # self.map = map
+
+    self.map_basic = map
 
     # 'Color' B&W map to combine with self.overlay
     self.map_img = np.repeat(self.map[:, :, np.newaxis], 3, axis=2)
@@ -76,7 +80,7 @@ class path_generator:
 
     print(start, end)
 
-    self.overlay = self.create_overlay(start, end)
+    self.overlay = np.ones(np.append(self.map.shape,3))   #Add 3 layers to create an RGB image
 
     open = nodeDict()
     open.add(Node(start))
@@ -107,7 +111,9 @@ class path_generator:
 
           self.update_overlay(node.pos, np.array([1, 0, 0]))
 
-          # self.show()
+          self.create_overlay(start, end)
+
+          self.show()
 
         self.path = np.asarray(path[::-1]) / self.resolution
         
@@ -140,8 +146,8 @@ class path_generator:
         # A* Heuristics Behavior
         proximity_penalty = 1000* (1 - self.map[s.pos[1], s.pos[0]]/255)
 
-        # s.g = self.distance(s.pos, start)
-        s.g = self.distance(s.pos, q.pos) + q.g
+        s.g = self.distance(s.pos, start)
+        # s.g = self.distance(s.pos, q.pos) + q.g
         # s.g = 1 + q.g
         s.h = self.distance(s.pos, end)
         s.f = s.g + s.h + proximity_penalty
@@ -188,6 +194,11 @@ class path_generator:
     self.viewer.imshow((self.map_img*self.overlay).astype('uint8'), interpolation='nearest')
 
     self.fig.canvas.draw()
+
+    # Fullscreen output for gif making
+    # mng = plt.get_current_fig_manager()
+    # mng.resize(*mng.window.maxsize())
+
     plt.pause(.01)
 
     # toc1 = time.perf_counter()
@@ -197,12 +208,14 @@ class path_generator:
     overlay = np.ones(np.append(self.map.shape,3))   #Add 3 layers to create an RGB image
 
     # circ_const
+    scalar = int(self.resolution/20)
 
-    overlay = cv2.circle(overlay, start, 1, (1, .5, 0), 1)
-    overlay = cv2.circle(overlay, end, 1, (1, .5, 0), 1)
+    self.update_overlay(end, np.array([1, 0, 0]))
+    overlay = cv2.circle(self.overlay, start, 0, (0, 1, 0), 2*scalar)
+    overlay = cv2.circle(self.overlay, end, 0, (1, .5, 0), 2*scalar)
 
     # Works at resolution: 100
-    cv2.putText(overlay, "Start", start - np.array([-5,0]), cv2.FONT_HERSHEY_SIMPLEX, .25, (0,0,0.5), 1)
-    cv2.putText(overlay, "End", end - np.array([-5,0]),     cv2.FONT_HERSHEY_SIMPLEX, .25, (0,0,0.5), 1)
+    # cv2.putText(overlay, "Start", start - np.array([-5,0]), cv2.FONT_HERSHEY_SIMPLEX, .25, (0,0,0.5), 1)
+    # cv2.putText(overlay, "End", end - np.array([-5,0]),     cv2.FONT_HERSHEY_SIMPLEX, .25, (0,0,0.5), 1)
 
     return overlay
